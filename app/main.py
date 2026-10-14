@@ -45,12 +45,15 @@ async def getTaskById(task_id:int):
 # update a task 
 @app.put("/task/{task_id}")
 async def updateTask(task_id:int, newTask:Task):
-    updated_task = Task(task_id, **newTask.model_dump())
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail="Task doesn't exist")
+    updated_task = newTask.model_copy(update={"id":task_id})
+    tasks[task_id] = updated_task.model_dump()
     return updated_task
 
 @app.delete("/task/{task_id}")
 async def deleteTask(task_id:int):
     if task_id not in tasks:
-        return HTTPException(status_code=404, detail="Task does not exist, can't be deleted")
+        raise HTTPException(status_code=404, detail="Task does not exist, can't be deleted")
     tasks.pop(task_id)
     return tasks
