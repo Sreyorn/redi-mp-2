@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from app.models import Task 
 
 app = FastAPI()
 
@@ -26,15 +27,30 @@ async def getAllTasks():
 #   "created_at": datetime
 # }
 @app.post("/task/{task_id}")
-async def addTask(task_id):
-    newTask = {
-        "id": 12,
-        "title": "task1",
-        "description":"testing task 1 adding",
-        "status":"todo",
-        "priority":"high",
-        "tags":["work", "personal"],
-        "created_at":"02-12-1999"
-    }
-    tasks[task_id] = newTask
-    return newTask
+async def addTask(task_id:int, task: Task):
+    # Pydantic models are immutable by default, so we can't do task.id = task_id directly
+    # model_copy() creates a new task objet with the id field updated
+    task = task.model_copy(update={"id":task_id})
+    tasks[task_id] = task.model_dump()
+    return task
+
+# get a single task by id
+@app.get("/task/{task_id}")
+async def getTaskById(task_id:int):
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail="Task does not exist")
+    task = tasks[task_id]
+    return task
+
+# update a task 
+@app.put("/task/{task_id}")
+async def updateTask(task_id:int, newTask:Task):
+    updated_task = Task(task_id, **newTask.model_dump())
+    return updated_task
+
+@app.delete("/task/{task_id}")
+async def deleteTask(task_id:int):
+    if task_id not in tasks:
+        return HTTPException(status_code=404, detail="Task does not exist, can't be deleted")
+    tasks.pop(task_id)
+    return tasks
