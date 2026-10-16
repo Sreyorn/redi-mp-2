@@ -1,10 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.templating import Jinja2Templates
 from app.models import Task 
 
 app = FastAPI()
+templates = Jinja2Templates(directory="app/templates")
 
 # tasks objects
 tasks = {}
+
+# a route that return html
+@app.get("/ui")
+async def ui(req: Request):
+    return templates.TemplateResponse(
+    request=req, name="index.html", context={"tasks":tasks}
+    )
 
 @app.get("/test")
 async def test():
