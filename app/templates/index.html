@@ -1,14 +1,99 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tasks Management - Orn</title>
-</head>
-<body>
-    <h1>Your Tasks</h1>
-    {% for task in tasks.values() %}
-    <p>{{task}}</p>
-    {% endfor %}
-</body>
+    <!-- style -->
+    <style>
+      .sticky {
+        width: 200px;
+        background: #fef08a;
+        padding: 1rem;
+        box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2);
+        transform: rotate(-2deg);
+        margin: 2rem;
+        font-family: "Inter";
+        /* display: flex; */
+      }
+      .sticky:nth-child(even) {
+        transform: rotate(2deg);
+      }
+      .sticky:nth-child(odd) {
+        transform: rotate(-1deg);
+      }
+      .board {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        padding: 2rem;
+        align-items: flex-start;
+      }
+      .priority-high {
+        background: #fecaca;
+      }
+      .priority-medium {
+        background: #fef08a;
+      }
+      .priority-low {
+        background: #d1fae5;
+      }
+      .tag {
+        background: rgba(0, 0, 0, 0.1);
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+      }
+      body {
+        background: #f5f0e8;
+        padding: 2rem;
+        font-family: "Inter";
+      }
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 2rem;
+        color: #333;
+      }
+      .badge {
+        padding: 0.2rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+      }
+      .todo {
+        background: #c7d2fe;
+      }
+      .done {
+        background: #bbf7d0;
+      }
+      .in_progress {
+        background: #fed7aa;
+      }
+    </style>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <h1 style="align-items: center">Your Tasks</h1>
+    <div class="board">
+      {% for task in tasks.values() %}
+      <div class="sticky">
+        <h2>{{task.title}}</h2>
+        <p>{{task.description}}</p>
+        <!-- <p><strong>Status: </strong> {{task.status}}</p> -->
+        <span class="badge {{task.status}}">{{task.status}}</span>
+        <span class="badge priority-{{task.priority}}"> {{task.priority}}</span>
+        <p>
+          <strong>Date: </strong> {{task.created_at.strftime("%b %d, %Y") }}
+        </p>
+        <div class="tags">
+          {% for tag in task.tags %}
+          <span class="tag">#{{tag}}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </body>
 </html>
