@@ -68,14 +68,125 @@
       .in_progress {
         background: #fed7aa;
       }
+      .btnAddTask {
+        border: #219d4c;
+        border-color: #219d4c;
+      }
+      .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      #taskForm {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-width: 400px;
+        margin: 1rem 2rem;
+      }
+      #taskForm label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #555;
+      }
+      #taskForm input,
+      #taskForm textarea,
+      #taskForm select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-family: "Inter";
+        font-size: 0.95rem;
+      }
+      #taskForm textarea {
+        resize: vertical;
+        min-width: 80px;
+      }
+      #taskForm button[type="submit"] {
+        background: #e1d259;
+        /* color: white; */
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        cursor: pointer;
+        align-self: flex-start;
+      }
+      #taskDialog {
+        border: none;
+        border-radius: 2px;
+        padding: 0;
+        max-width: 420px;
+        width: 90%;
+      }
+      #taskDialog::backdrop {
+        background: rgba(0, 0, 0, 0.4);
+      }
+      #closeBtn {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        color: #888;
+      }
+      #taskForm {
+        margin: 0;
+      }
     </style>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter&display=swap"
       rel="stylesheet"
     />
   </head>
+
   <body>
-    <h1 style="align-items: center">Your Tasks</h1>
+    <header class="page-header">
+      <h1 style="align-items: center">Your Tasks</h1>
+      <button type="button" class="btnAddTask">+ Add Task</button>
+    </header>
+    <dialog id="taskDialog">
+      <button type="button" id="closeBtn">X</button>
+      <form id="taskForm">
+        <label for="title">
+          Title
+          <input type="text" name="title" required />
+        </label>
+        <label for="description">
+          Description
+          <textarea name="description" id="description"></textarea>
+        </label>
+        <label for="status">
+          Status
+          <select name="status" id="status">
+            <option value="todo">To do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </label>
+        <label for="priority">
+          Priority
+          <select name="priority" id="priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </label>
+        <label for="tags">
+          Tags(,)
+          <input type="text" name="tags" />
+        </label>
+        <button type="submit">Add</button>
+      </form>
+    </dialog>
     <div class="board">
       {% for task in tasks.values() %}
       <div class="sticky">
@@ -95,5 +206,53 @@
       </div>
       {% endfor %}
     </div>
+    <script>
+      const btn = document.querySelector(".btnAddTask");
+      const form = document.getElementById("taskForm");
+      const dialog = document.getElementById("taskDialog");
+
+      btn.addEventListener("click", () => {
+        // form.hidden = !form.hidden;
+        dialog.showModal();
+      });
+      document
+        .getElementById("closeBtn")
+        .addEventListener("click", () => dialog.close());
+      form.addEventListener("submit", async (e) => {
+        // prevent browswer's default page reload on submit
+        e.preventDefault();
+
+        // read the form into an obj matching the task model
+        const task = {
+          title: form.title.value,
+          description: form.description.value,
+          status: form.status.value,
+          priority: form.priority.value,
+          tags: form.tags.value
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t),
+        };
+
+        // pick an id
+        const taskId = Date.now();
+
+        // send to FastAPI
+        const res = await fetch(`/task/${taskId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(task),
+        });
+        const newTask = await res.json();
+
+        // hide form and reset it
+        // form.hidden = true;
+        dialog.close();
+        form.reset();
+
+        // reload the page to show new task
+        window.location.reload();
+      });
+    </script>
   </body>
 </html>
