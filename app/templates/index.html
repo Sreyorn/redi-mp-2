@@ -14,7 +14,60 @@
         transform: rotate(-2deg);
         margin: 2rem;
         font-family: "Inter";
+        position: relative;
         /* display: flex; */
+      }
+      .sticky.pinned {
+        order: -1;
+      }
+      .sticky.pinned::before {
+        content: "";
+        position: absolute;
+        top: -22px;
+        left: 50%;
+        transform: translateX(-60%) rotate(-20deg);
+        width: 16px;
+        height: 16px;
+        background: radial-gradient(circle at 35% 35%, #ff8080, #c0392b);
+        border-radius: 50%;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+        z-index: 2;
+      }
+
+      .sticky.pinned::after {
+        content: "";
+        position: absolute;
+        top: -14px;
+        left: 50%;
+        transform: translateX(-50%) rotate(20deg);
+        transform-origin: center top;
+        width: 8px;
+        height: 22px;
+        background: linear-gradient(to bottom, #d0d0d0, #888);
+        clip-path: polygon(30% 0%, 70% 0%, 50% 100%);
+        z-index: 1;
+      }
+      .note-actions {
+        display: flex;
+        gap: 0.4rem;
+        margin-top: 0.75rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+      }
+      .note-actions button {
+        background: none;
+        border: none;
+        font-size: 0.75rem;
+        cursor: pointer;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        opacity: 0.55;
+        font-family: "Inter";
+      }
+
+      .note-actions button:hover {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.08);
       }
       .sticky:nth-child(even) {
         transform: rotate(2deg);
@@ -141,6 +194,9 @@
       #taskForm {
         margin: 0;
       }
+      #dialogTitle {
+        margin: 1.5rem;
+      }
     </style>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter&display=swap"
@@ -155,6 +211,7 @@
     </header>
     <dialog id="taskDialog">
       <button type="button" id="closeBtn">X</button>
+      <h2 id="dialogTitle">New Task</h2>
       <form id="taskForm">
         <label for="title">
           Title
@@ -187,12 +244,21 @@
         <button type="submit">Add</button>
       </form>
     </dialog>
+    <dialog id="confirmDialog">
+      <p>Delete this task?</p>
+      <form method="dialog">
+        <button value="cancel">Cancel</button>
+        <button value="confirm">Delete</button>
+      </form>
+    </dialog>
     <div class="board">
       {% for task in tasks.values() %}
-      <div class="sticky">
+      <div
+        class="sticky {% if task.pinned %}pinned{% endif %}"
+        data-task-id="{{ task.id }}"
+      >
         <h2>{{task.title}}</h2>
         <p>{{task.description}}</p>
-        <!-- <p><strong>Status: </strong> {{task.status}}</p> -->
         <span class="badge {{task.status}}">{{task.status}}</span>
         <span class="badge priority-{{task.priority}}"> {{task.priority}}</span>
         <p>
@@ -203,6 +269,13 @@
           <span class="tag">#{{tag}}</span>
           {% endfor %}
         </div>
+        <div class="note-actions">
+          <button class="btnPin">
+            {% if task.pinned %}Unpin{% else %}Pin{% endif %}
+          </button>
+          <button class="btnEdit">Edit</button>
+          <button class="btnDelete">Delete</button>
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -210,20 +283,87 @@
       const btn = document.querySelector(".btnAddTask");
       const form = document.getElementById("taskForm");
       const dialog = document.getElementById("taskDialog");
+      const dialogTitle = document.getElementById("dialogTitle");
+      const submit = form.querySelector('button[type="submit"]');
+      const confirmDialog = document.getElementById("confirmDialog");
+
+      let formMode = "create";
+      let editingTask = null;
+      let pendingDeleteId = null;
+      let pendingDeleteNote = null;
+
+      confirmDialog.addEventListener("close", async () => {
+        if (confirmDialog.returnValue === "confirm") {
+          await fetch(`/task/${pendingDeleteId}`, { method: "DELETE" });
+          pendingDeleteNote.remove();
+        }
+      });
 
       btn.addEventListener("click", () => {
         // form.hidden = !form.hidden;
+        formMode = "create";
+        editingTask = null;
+        dialogTitle.textContent = "New Task";
+        submitBtn.textContent = "Add";
+        form.reset();
         dialog.showModal();
       });
+      // close button
       document
         .getElementById("closeBtn")
         .addEventListener("click", () => dialog.close());
+
+      // event delegation — one listener handles all three buttons
+      document.querySelector(".board").addEventListener("click", async (e) => {
+        const note = e.target.closest(".sticky");
+        if (!note) return;
+        const taskId = note.dataset.taskId;
+
+        if (e.target.matches(".btnDelete")) {
+          // await fetch(`/task/${taskId}`, { method: "DELETE" });
+          // note.remove();
+          pendingDeleteId = taskId;
+          pendingDeleteNote = note;
+          confirmDialog.showModal();
+        }
+
+        if (e.target.matches(".btnEdit")) {
+          const res = await fetch(`/task/${taskId}`);
+          editingTask = await res.json();
+
+          form.title.value = editingTask.title;
+          form.description.value = editingTask.description;
+          form.status.value = editingTask.status;
+          form.priority.value = editingTask.priority;
+          form.tags.value = editingTask.tags.join(", ");
+
+          formMode = "edit";
+          dialogTitle.textContent = "Edit Task";
+          submitBtn.textContent = "Save";
+          dialog.showModal();
+        }
+
+        if (e.target.matches(".btnPin")) {
+          const res = await fetch(`/task/${taskId}`);
+          const task = await res.json();
+          const updated = { ...task, pinned: !task.pinned };
+
+          await fetch(`/task/${taskId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updated),
+          });
+
+          note.classList.toggle("pinned");
+          e.target.textContent = updated.pinned ? "Unpin" : "Pin";
+        }
+      });
+
+      // submit — handles both create and edit
       form.addEventListener("submit", async (e) => {
-        // prevent browswer's default page reload on submit
         e.preventDefault();
 
-        // read the form into an obj matching the task model
-        const task = {
+        const formData = {
           title: form.title.value,
           description: form.description.value,
           status: form.status.value,
@@ -234,23 +374,24 @@
             .filter((t) => t),
         };
 
-        // pick an id
-        const taskId = Date.now();
+        if (formMode === "create") {
+          const taskId = Date.now();
+          await fetch(`/task/${taskId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          });
+        } else {
+          const updatedTask = { ...editingTask, ...formData };
+          await fetch(`/task/${editingTask.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedTask),
+          });
+        }
 
-        // send to FastAPI
-        const res = await fetch(`/task/${taskId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(task),
-        });
-        const newTask = await res.json();
-
-        // hide form and reset it
-        // form.hidden = true;
         dialog.close();
         form.reset();
-
-        // reload the page to show new task
         window.location.reload();
       });
     </script>

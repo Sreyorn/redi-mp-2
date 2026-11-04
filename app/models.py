@@ -7,5 +7,6 @@ class Task(BaseModel):
     description: str = ""
     priority: str 
     tags: list[str] = []
+    pinned: bool = False
     created_at: datetime = datetime.now()
 
