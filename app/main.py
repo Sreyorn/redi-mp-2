@@ -35,6 +35,9 @@ async def getAllTasks():
 #   "tags": [string],
 #   "created_at": datetime
 # }
+
+
+
 @app.post("/task/{task_id}")
 async def addTask(task_id:int, task: Task):
     # Pydantic models are immutable by default, so we can't do task.id = task_id directly
@@ -50,6 +53,24 @@ async def getTaskById(task_id:int):
         raise HTTPException(status_code=404, detail="Task does not exist")
     task = tasks[task_id]
     return task
+# get all tasks or filter
+@app.get("/tasks/")
+async def filterTask(query: str="", status: str="", priority:str=""):
+    result = {}
+    for task_id, task in tasks.items():
+        match_text = (
+            not query or query.lower() in task["title"].lower() or
+            query.lower() in task["description"].lower() or
+            any(query.lower() in tag.lower() for tag in task["tags"])
+        )
+        match_status = not status or task["status"] == status
+        match_priority = not priority or task["priority"] == priority
+
+        if match_text and match_status and match_priority:
+            result[task_id] = task 
+    return result
+
+
 
 # update a task 
 @app.put("/task/{task_id}")

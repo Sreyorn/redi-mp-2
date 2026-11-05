@@ -87,7 +87,7 @@
         background: #eb8484;
       }
       .priority-medium {
-        background: #fef08a;
+        background: #beba96;
       }
       .priority-low {
         background: #d1fae5;
@@ -403,22 +403,60 @@
       let pendingDeleteNote = null;
 
       // filter notes - search
-      function filterNote() {
-        const query = searchInput.value.toLowerCase();
-        const statusFilter = filterStatus.value;
-        const priorityFilter = filterPriority.value;
-
-        document.querySelectorAll(".sticky").forEach((note) => {
-          const matchesText = note.textContent.toLowerCase().includes(query);
-          const matchesStatus =
-            !statusFilter || note.dataset.status === statusFilter;
-          const matchesPriority =
-            !priorityFilter || note.dataset.priority === priorityFilter;
-
-          note.style.display =
-            matchesText && matchesStatus && matchesPriority ? "" : "none";
-          // <option value="high">High</option>
+      async function filterNote() {
+        // server-side
+        const params = new URLSearchParams({
+          query: searchInput.value,
+          status: filterStatus.value,
+          priority: filterPriority.value,
         });
+        const res = await fetch(`/tasks/?${params}`);
+        const tasks = await res.json();
+        renderBoard(tasks);
+
+        // client-side
+        // const query = searchInput.value.toLowerCase();
+        // const statusFilter = filterStatus.value;
+        // const priorityFilter = filterPriority.value;
+
+        // document.querySelectorAll(".sticky").forEach((note) => {
+        //   const matchesText = note.textContent.toLowerCase().includes(query);
+        //   const matchesStatus =
+        //     !statusFilter || note.dataset.status === statusFilter;
+        //   const matchesPriority =
+        //     !priorityFilter || note.dataset.priority === priorityFilter;
+
+        //   note.style.display =
+        //     matchesText && matchesStatus && matchesPriority ? "" : "none";
+        //   // <option value="high">High</option>
+        // });
+      }
+
+      function renderBoard(tasks) {
+        const board = document.querySelector(".board");
+        board.innerHTML = Object.values(tasks)
+          .map(
+            (task) => `
+           <div class="sticky ${task.pinned ? "pinned" : ""}"
+           data-task-id="${task.id}"
+           data-status="${task.status}"
+           data-priority="${task.priority}">
+        <h2>${task.title}</h2>
+        <p>${task.description}</p>
+        <span class="badge ${task.status}">${task.status}</span>
+        <span class="badge priority-${task.priority}">${task.priority}</span>
+         <div class="tags">
+        ${task.tags.map((t) => `<span class="tag">#${t}</span>`).join("")}
+        </div>
+        <div class="note-actions">
+          <button class="btnPin">${task.pinned ? "Unpin" : "Pin"}</button>
+          <button class="btnEdit">Edit</button>
+          <button class="btnDelete">Delete</button>
+        </div>
+      </div>
+        `,
+          )
+          .join("");
       }
 
       searchInput.addEventListener("input", filterNote);
