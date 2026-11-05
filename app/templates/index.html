@@ -78,6 +78,7 @@
       .board {
         display: flex;
         flex-wrap: wrap;
+        justify-content: center;
         gap: 2rem;
         padding: 2rem;
         align-items: flex-start;
@@ -121,17 +122,22 @@
       .in_progress {
         background: #cea16e;
       }
-      .btnAddTask {
+      .addTaskBtn {
         border: #219d4c;
         border-color: #219d4c;
       }
       .page-header {
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: space-between;
       }
+      h1 {
+        flex: 1;
+        text-align: center;
+      }
       #taskForm {
-        background: white;
+        background: rgb(246, 203, 88);
         padding: 1.5rem;
         border-radius: 12px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -157,29 +163,31 @@
         border-radius: 8px;
         font-family: "Inter";
         font-size: 0.95rem;
+        background: rgb(245, 226, 171);
       }
       #taskForm textarea {
         resize: vertical;
         min-width: 80px;
       }
       #taskForm button[type="submit"] {
-        background: #e1d259;
+        background: #edd190;
         /* color: white; */
-        border: none;
-        padding: 0.6rem 1.2rem;
+        border-color: black;
+        padding: 0.6rem 1.7rem;
         border-radius: 8px;
         cursor: pointer;
         align-self: flex-start;
       }
       #taskDialog {
-        border: none;
-        border-radius: 2px;
-        padding: 0;
+        background: rgb(233, 174, 9);
+        border-color: black;
+        border-radius: 12px;
+        padding: 1.5rem;
         max-width: 420px;
         width: 90%;
       }
       #taskDialog::backdrop {
-        background: rgba(0, 0, 0, 0.4);
+        background: rgba(0, 0, 0, 0.7);
       }
       #closeBtn {
         position: absolute;
@@ -197,6 +205,82 @@
       #dialogTitle {
         margin: 1.5rem;
       }
+
+      /* search bar */
+      .search-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        padding: 0 2rem 1rem 2rem;
+      }
+      .search-bar input,
+      .search-bar select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #ddd;
+        font-size: 0.9rem;
+        font-family: "Inter";
+        background: white;
+      }
+      .search-bar input {
+        flex: 1; /* takes all remaining space*/
+        max-width: 300px;
+      }
+      .search-bar input:focus {
+        outline: none;
+        border-color: #e1d259;
+        box-shadow: 0 0 0 3px rgba(255, 210, 89, 0.3);
+      }
+
+      /* delete dialog */
+      #confirmDialog {
+        background: rgb(233, 174, 9);
+        border-color: black;
+        border-radius: 12px;
+        padding: 1.5rem;
+        max-width: 340px;
+        width: 90%;
+      }
+      #confirmDialog::backdrop {
+        background: rgba(0, 0, 0, 0.7);
+      }
+      #confirmDialog p {
+        margin: 0 0 1.25rem 0;
+        font-size: 0.95rem;
+        color: #444;
+        line-height: 1.5;
+      }
+      #confirmDialog form {
+        display: flex;
+        gap: 0.6rem;
+        justify-content: flex-end;
+      }
+      #confirmDialog button {
+        padding: 0.5rem 1.1rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: "Inter";
+        font-size: 0.9rem;
+      }
+      /* #confirmDialog button[value="cancel"] {
+      } */
+      /* #confirmDialog button[value="cancel"]:hover {
+      } */
+      .cancelBtn {
+        background: #eee;
+        color: #555;
+      }
+      .cancelBtn:hover {
+        background: #ddd;
+      }
+      .deleteBtn {
+        background: #e63946;
+        color: white;
+      }
+      .deleteBtn:hover {
+        background: #c1121f;
+      }
     </style>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter&display=swap"
@@ -207,7 +291,7 @@
   <body>
     <header class="page-header">
       <h1 style="align-items: center">Your Tasks</h1>
-      <button type="button" class="btnAddTask">+ Add Task</button>
+      <button type="button" class="addTaskBtn">+ Add Task</button>
     </header>
     <dialog id="taskDialog">
       <button type="button" id="closeBtn">X</button>
@@ -247,15 +331,37 @@
     <dialog id="confirmDialog">
       <p>Delete this task?</p>
       <form method="dialog">
-        <button value="cancel">Cancel</button>
-        <button value="confirm">Delete</button>
+        <button class="cancelBtn" value="cancel">Cancel</button>
+        <button class="deleteBtn" value="confirm">Delete</button>
       </form>
     </dialog>
+    <!-- search -->
+    <div class="search-bar">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="looking for a note? type in!"
+      />
+      <select name="" id="filterStatus">
+        <option value="">All status</option>
+        <option value="todo">To do</option>
+        <option value="in_progress">In progress</option>
+        <option value="done">Done</option>
+      </select>
+      <select name="" id="filterPriority">
+        <option value="">All priority</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
     <div class="board">
       {% for task in tasks.values() %}
       <div
         class="sticky {% if task.pinned %}pinned{% endif %}"
         data-task-id="{{ task.id }}"
+        data-status="{{task.status}}"
+        data-priority="{{task.priority}}"
       >
         <h2>{{task.title}}</h2>
         <p>{{task.description}}</p>
@@ -280,17 +386,44 @@
       {% endfor %}
     </div>
     <script>
-      const btn = document.querySelector(".btnAddTask");
+      const btn = document.querySelector(".addTaskBtn");
       const form = document.getElementById("taskForm");
       const dialog = document.getElementById("taskDialog");
       const dialogTitle = document.getElementById("dialogTitle");
       const submitBtn = form.querySelector('button[type="submit"]');
       const confirmDialog = document.getElementById("confirmDialog");
 
+      const searchInput = document.getElementById("searchInput");
+      const filterStatus = document.getElementById("filterStatus");
+      const filterPriority = document.getElementById("filterPriority");
+
       let formMode = "create";
       let editingTask = null;
       let pendingDeleteId = null;
       let pendingDeleteNote = null;
+
+      // filter notes - search
+      function filterNote() {
+        const query = searchInput.value.toLowerCase();
+        const statusFilter = filterStatus.value;
+        const priorityFilter = filterPriority.value;
+
+        document.querySelectorAll(".sticky").forEach((note) => {
+          const matchesText = note.textContent.toLowerCase().includes(query);
+          const matchesStatus =
+            !statusFilter || note.dataset.status === statusFilter;
+          const matchesPriority =
+            !priorityFilter || note.dataset.priority === priorityFilter;
+
+          note.style.display =
+            matchesText && matchesStatus && matchesPriority ? "" : "none";
+          // <option value="high">High</option>
+        });
+      }
+
+      searchInput.addEventListener("input", filterNote);
+      filterStatus.addEventListener("change", filterNote);
+      filterPriority.addEventListener("change", filterNote);
 
       confirmDialog.addEventListener("close", async () => {
         if (confirmDialog.returnValue === "confirm") {
