@@ -14,7 +14,10 @@ def get_all(db: Session = Depends(get_db)):
 @router.post("/applications")
 def create(application: JobApplication, db: Session = Depends(get_db)):
     # convert pydantic model -> sqlalchem table obj
-    db_item = schemas.JobApplicationTable(**application.model_dump())
+    # without mode='json'-> Error:   'status': <ApplicationStatus.applied: 'applied'>
+    # postgresql doens't know what enum is - it expectes a plain string "applied"
+    # fix: mode='json': tell Pydantic to convert enums to their values
+    db_item = schemas.JobApplicationTable(**application.model_dump(mode="json"))
     # add to session
     db.add(db_item) 
     # commit to db
