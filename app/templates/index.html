@@ -302,7 +302,19 @@
     </header>
     <dialog id="taskDialog">
       <button type="button" id="closeBtn">X</button>
-      <h2 id="dialogTitle">New Task</h2>
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin: 1.5rem;
+        "
+      >
+        <h2 id="dialogTitle">New Task</h2>
+        <button type="button" id="editModeToggle" style="display: none">
+          PUT
+        </button>
+      </div>
       <form id="taskForm">
         <label for="title">
           Title
@@ -399,6 +411,7 @@
       const dialogTitle = document.getElementById("dialogTitle");
       const submitBtn = form.querySelector('button[type="submit"]');
       const confirmDialog = document.getElementById("confirmDialog");
+      const editModeToggle = document.getElementById("editModeToggle");
 
       const searchInput = document.getElementById("searchInput");
       const filterStatus = document.getElementById("filterStatus");

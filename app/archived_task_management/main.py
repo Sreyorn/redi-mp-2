@@ -1,0 +1,102 @@
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.templating import Jinja2Templates
+from app.models import Task, TaskUpdate
+
+app = FastAPI()
+templates = Jinja2Templates(directory="app/templates")
+
+# tasks objects
+tasks = {}
+
+# a route that return html
+@app.get("/ui")
+async def ui(req: Request):
+    return templates.TemplateResponse(
+    request=req, name="index.html", context={"tasks":tasks}
+    )
+
+@app.get("/test")
+async def test():
+    testObj={
+        "message": "This is a test object"
+    }
+    return testObj
+
+@app.get("/")
+async def getAllTasks():
+    return tasks
+
+# {
+#   "id": int,
+#   "title": string,
+#   "description": string,
+#   "status": "todo" | "in_progress" | "done",
+#   "priority": "low" | "medium" | "high",
+#   "tags": [string],
+#   "created_at": datetime
+# }
+
+
+
+@app.post("/task/{task_id}")
+async def addTask(task_id:int, task: Task):
+    # Pydantic models are immutable by default, so we can't do task.id = task_id directly
+    # model_copy() creates a new task objet with the id field updated
+    task = task.model_copy(update={"id":task_id})
+    tasks[task_id] = task.model_dump()
+    return task
+
+# get a single task by id
+@app.get("/task/{task_id}")
+async def getTaskById(task_id:int):
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail="Task does not exist")
+    task = tasks[task_id]
+    return task
+# get all tasks or filter
+@app.get("/tasks/")
+async def filterTask(query: str="", status: str="", priority:str=""):
+    result = {}
+    for task_id, task in tasks.items():
+        match_text = (
+            not query or query.lower() in task["title"].lower() or
+            query.lower() in task["description"].lower() or
+            any(query.lower() in tag.lower() for tag in task["tags"])
+        )
+        match_status = not status or task["status"] == status
+        match_priority = not priority or task["priority"] == priority
+
+        if match_text and match_status and match_priority:
+            result[task_id] = task 
+    return result
+
+
+
+# update a task 
+@app.put("/task/{task_id}")
+async def updateTask(task_id:int, newTask:Task):
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail="Task doesn't exist")
+    updated_task = newTask.model_copy(update={"id":task_id})
+    tasks[task_id] = updated_task.model_dump()
+    return updated_task
+
+@app.delete("/task/{task_id}")
+async def deleteTask(task_id:int):
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail="Task does not exist, can't be deleted")
+    tasks.pop(task_id)
+    return tasks
+
+
+@app.patch("/task/{task_id}")
+async def updateTaskPatch(task_id: int, newTask:TaskUpdate):
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail="Task doesn't exist")
+    existing = tasks[task_id]
+    changes = newTask.model_dump(exclude_unset=True)
+    merged = {**existing, **changes}
+    tasks[task_id] = merged
+    return tasks[task_id]
+    
+    
