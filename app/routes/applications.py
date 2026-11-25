@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.models.application import JobApplication
 from sqlalchemy.orm import Session 
 from app.repository.database import get_db
@@ -26,4 +26,18 @@ def create(application: JobApplication, db: Session = Depends(get_db)):
     db.refresh(db_item) 
     return db_item
 
+@router.put("/applications/{app_id}")
+def update_put_app(app_id: int, application: JobApplication, db:Session = Depends(get_db)):
+    db_item = db.query(schemas.JobApplicationTable).filter(schemas.JobApplicationTable.id == app_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Can't find this job")
+    for key, value in application.model_dump(mode='json').items():
+        setattr(db_item, key, value)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
 
+
+@router.delete("/applications/{app_id}")
+def delete_app(app_id: int, db: Session= Depends(get_db)):
+    pass
