@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
-from app.main import app
-from app.main import tasks
+from app.archived_task_management.main import app
+from app.archived_task_management.main import tasks
 import pytest
 
 client = TestClient(app)

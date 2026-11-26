@@ -10,6 +10,13 @@ router = APIRouter()
 def get_all(db: Session = Depends(get_db)):
     return db.query(schemas.JobApplicationTable).all() 
 
+# endpoint to get a single application
+@router.get('/applications/{app_id}')
+def get_one_application(app_id: int, db: Session = Depends(get_db)):
+    job = db.query(schemas.JobApplicationTable).filter(schemas.JobApplicationTable.id == app_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Can't find this job")
+    return job
 
 @router.post("/applications")
 def create(application: JobApplication, db: Session = Depends(get_db)):
@@ -31,7 +38,8 @@ def update_put_app(app_id: int, application: JobApplication, db:Session = Depend
     job = db.query(schemas.JobApplicationTable).filter(schemas.JobApplicationTable.id == app_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Can't find this job")
-    for key, value in application.model_dump(mode='json').items():
+    # need to exclude id, and created_at when updating 
+    for key, value in application.model_dump(mode='json', exclude={'id','created_at'}).items():
         setattr(job, key, value)
     db.commit()
     db.refresh(job)
