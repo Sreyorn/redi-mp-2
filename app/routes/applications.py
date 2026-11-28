@@ -54,3 +54,9 @@ def delete_app(app_id: int, db: Session= Depends(get_db)):
     db.delete(job)
     db.commit()
     return {"message": "Job deleted successfully", "id": app_id}
+
+
+# parsing raw_jd into
+@router.post('/applications/{parse_id}')
+def parse_jd(parse_id: int, db: Session=Depends(get_db)):
+    pass

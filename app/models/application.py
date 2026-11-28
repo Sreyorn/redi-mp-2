@@ -16,4 +16,6 @@ class JobApplication(BaseModel):
     status: ApplicationStatus
     salary: str | None = None
     notes: str | None = None 
+    jd_raw: str | None = None
     created_at: datetime = datetime.now() 
+

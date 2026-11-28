@@ -14,4 +14,5 @@ class JobApplicationTable(Base):
     status = Column(String) 
     salary = Column(String, nullable=True) 
     notes = Column(String, nullable=True) 
+    jd_raw = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.now )
